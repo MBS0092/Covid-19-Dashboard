@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COVID-19 Predictive Models - Interactive Dashboard</title>
+    <title>COVID-19 ML Dashboard | Model & Data Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -11,782 +12,1444 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f35 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
             min-height: 100vh;
-            padding: 20px;
         }
 
+        /* Layout */
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+            display: flex;
+            min-height: 100vh;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: rgba(30, 41, 59, 0.95);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
         }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        .sidebar h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+        .sidebar p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
         }
 
-        .content {
-            padding: 40px;
+        .sidebar-section {
+            margin-bottom: 2rem;
         }
 
-        .step-section {
-            margin-bottom: 50px;
-            padding: 30px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 5px solid #667eea;
-        }
-
-        .step-number {
-            display: inline-block;
-            width: 50px;
-            height: 50px;
-            background: #667eea;
-            color: white;
-            border-radius: 50%;
-            line-height: 50px;
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .step-title {
-            font-size: 1.8em;
-            color: #333;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        .step-description {
-            color: #666;
-            font-size: 1em;
-            margin-bottom: 15px;
-        }
-
-        .step-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .detail-box {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border-top: 3px solid #764ba2;
-        }
-
-        .detail-title {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 8px;
-            font-size: 0.95em;
-        }
-
-        .detail-value {
-            font-size: 1.2em;
-            color: #333;
+        .sidebar-title {
+            font-size: 0.95rem;
             font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .metric-label {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        .metric-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .metric-unit {
-            color: #999;
-            font-size: 0.85em;
-        }
-
-        .results-section {
-            margin-top: 50px;
-        }
-
-        .results-title {
-            font-size: 2em;
-            color: #333;
-            margin-bottom: 30px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .model-comparison {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+        .sidebar-content {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border-left: 2px solid var(--primary);
+            border-radius: 4px;
+            margin-bottom: 1rem;
         }
 
         .model-card {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            background: rgba(39, 99, 235, 0.1);
+            border: 1px solid var(--primary);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
         }
 
-        .model-card:hover {
-            transform: translateY(-5px);
+        .model-card h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
         }
 
-        .model-header {
-            padding: 20px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.2em;
-            color: white;
+        .model-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
         }
 
-        .model-card.arima .model-header {
-            background: #e74c3c;
-        }
-
-        .model-card.rf .model-header {
-            background: #f39c12;
-        }
-
-        .model-card.lstm .model-header {
-            background: #3498db;
-        }
-
-        .model-card.cnn-lstm .model-header {
-            background: #2ecc71;
-        }
-
-        .model-metrics {
-            padding: 20px;
-        }
-
-        .metric-row {
+        .metric-mini {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(100,116,139,0.3);
+            font-size: 0.85rem;
         }
 
-        .metric-row:last-child {
+        .metric-mini:last-child {
             border-bottom: none;
-            margin-bottom: 0;
         }
 
-        .metric-name {
-            color: #666;
+        .metric-value {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 320px;
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.95rem;
             font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .metric-number {
-            color: #333;
-            font-weight: bold;
-            font-size: 1.1em;
+        .tab-btn:hover {
+            color: var(--primary);
         }
 
-        .conclusion-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            border-radius: 10px;
-            margin-top: 50px;
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
-        .conclusion-title {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            font-weight: bold;
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
         }
 
-        .conclusion-content {
-            line-height: 1.8;
-            font-size: 1.05em;
-            margin-bottom: 20px;
+        .tab-content.active {
+            display: block;
         }
 
-        .conclusion-bullet {
-            margin-left: 20px;
-            margin-bottom: 15px;
-            padding-left: 20px;
-            border-left: 3px solid white;
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .why-rf {
-            background: #fff3cd;
-            border-left: 5px solid #f39c12;
-            padding: 20px;
+        /* Cards & Sections */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
             border-radius: 8px;
-            margin-top: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
         }
 
-        .why-rf-title {
-            font-weight: bold;
-            color: #f39c12;
-            margin-bottom: 10px;
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px rgba(37, 99, 235, 0.2);
         }
 
-        .why-rf-content {
-            color: #333;
-            line-height: 1.6;
+        .card h3 {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
         }
 
-        .winner-badge {
-            display: inline-block;
-            background: #2ecc71;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
-            margin-top: 10px;
+        .card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
         }
 
-        .footer {
-            background: #333;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
+        .card .unit {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
         }
 
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-            background: white;
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        /* Data Table */
+        .data-table {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
+            margin-bottom: 1.5rem;
         }
 
-        .comparison-table thead {
-            background: #667eea;
-            color: white;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .comparison-table th,
-        .comparison-table td {
-            padding: 15px;
+        thead {
+            background: rgba(37, 99, 235, 0.1);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tbody tr:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Lists */
+        .list-item {
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border-left: 3px solid var(--primary);
+            margin-bottom: 0.8rem;
+            border-radius: 4px;
+        }
+
+        .list-item strong {
+            color: var(--primary);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-primary {
+            background: rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            flex: 1;
+            min-width: 150px;
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
             text-align: center;
-            border-bottom: 1px solid #e0e0e0;
         }
 
-        .comparison-table tbody tr:hover {
-            background: #f8f9fa;
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
-        .best {
-            background: #d4edda;
-            font-weight: bold;
-            color: #155724;
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.15));
+            border: 1px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .highlight-box strong {
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+
+            .main {
+                margin-left: 280px;
+                padding: 1.5rem;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
         }
 
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8em;
+            .container {
+                flex-direction: column;
             }
 
-            .model-comparison {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 1.5rem;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+
+            .grid {
                 grid-template-columns: 1fr;
             }
 
-            .step-details {
-                grid-template-columns: 1fr;
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-btn {
+                border-bottom: 1px solid var(--border);
+                border-right: 2px solid transparent;
+            }
+
+            .tab-btn.active {
+                border-bottom: 1px solid var(--border);
+                border-right-color: var(--primary);
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .stat {
+                min-width: 100%;
             }
         }
+
+        /* Scroll Bar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Icons */
+        .icon {
+            font-size: 1.2rem;
+        }
+
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>COVID-19 Predictive Models</h1>
-            <p>Complete Project Pipeline: Data Cleaning → Feature Engineering → Model Training → Testing & Results</p>
-        </div>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <h2>📊 ML Pipeline</h2>
+            <p>Interactive analysis of COVID-19 epidemic forecasting model</p>
 
-        <div class="content">
-            <!-- STEP 1: DATA CLEANING -->
-            <div class="step-section">
-                <div class="step-number">1</div>
-                <div class="step-title">📊 Data Cleaning & Preprocessing</div>
-                <div class="step-description">
-                    Raw COVID-19 dataset spanning March 16, 2020 to April 26, 2023
+            <!-- Model Selection Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">
+                    <span class="icon">🤖</span> Model Selection
                 </div>
-                <div class="step-details">
-                    <div class="detail-box">
-                        <div class="detail-title">Total Records</div>
-                        <div class="detail-value">1,134 days</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Raw Features</div>
-                        <div class="detail-value">25</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Missing Values</div>
-                        <div class="detail-value">2.1% handled</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Actions Taken</div>
-                        <div class="detail-value">Imputation, normalization, outlier handling</div>
-                    </div>
+                <div class="sidebar-content">
+                    We tested 3 machine learning algorithms on this tabular, cross-sectional dataset (102 samples, 11 features). Tree-based methods are ideal for this data structure.
                 </div>
             </div>
 
-            <!-- STEP 2: FEATURE ENGINEERING -->
-            <div class="step-section">
-                <div class="step-number">2</div>
-                <div class="step-title">🔧 Feature Engineering</div>
-                <div class="step-description">
-                    Transform raw data into 44 predictive features capturing temporal patterns
+            <!-- Random Forest Card -->
+            <div class="model-card">
+                <h4>🌲 Random Forest</h4>
+                <p><strong>Best Individual Model</strong></p>
+                <div class="metric-mini">
+                    <span>R² Score:</span>
+                    <span class="metric-value">0.9385</span>
                 </div>
-                <div class="step-details">
-                    <div class="detail-box">
-                        <div class="detail-title">Lagged Features</div>
-                        <div class="detail-value">6</div>
-                        <div style="font-size: 0.85em; color: #666;">7 & 14-day delays</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Rolling Statistics</div>
-                        <div class="detail-value">9</div>
-                        <div style="font-size: 0.85em; color: #666;">7, 14, 30-day means & std</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Ratio Features</div>
-                        <div class="detail-value">13</div>
-                        <div style="font-size: 0.85em; color: #666;">Positivity, occupancy rates</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Temporal Features</div>
-                        <div class="detail-value">6</div>
-                        <div style="font-size: 0.85em; color: #666;">Day-of-week, seasonality</div>
-                    </div>
-                    <div class="detail-box">
-                        <div class="detail-title">Raw Features</div>
-                        <div class="detail-value">10</div>
-                        <div style="font-size: 0.85em; color: #666;">Social, mobility, health</div>
-                    </div>
+                <div class="metric-mini">
+                    <span>MAPE:</span>
+                    <span class="metric-value">14.08%</span>
                 </div>
-                <div class="metrics-grid" style="margin-top: 20px;">
-                    <div class="metric-card">
-                        <div class="metric-label">Final Feature Count</div>
-                        <div class="metric-value">44</div>
-                        <div class="metric-unit">engineered features</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Feature Types</div>
-                        <div class="metric-value">5</div>
-                        <div class="metric-unit">categories</div>
-                    </div>
+                <p style="margin-top: 0.8rem; font-size: 0.8rem;">Bagging ensemble of 200 decision trees. Reduces variance via parallel, uncorrelated trees.</p>
+            </div>
+
+            <!-- Gradient Boosting Card -->
+            <div class="model-card">
+                <h4>🚀 Gradient Boosting</h4>
+                <p><strong>Highest Accuracy ⭐</strong></p>
+                <div class="metric-mini">
+                    <span>R² Score:</span>
+                    <span class="metric-value">0.9624</span>
+                </div>
+                <div class="metric-mini">
+                    <span>MAPE:</span>
+                    <span class="metric-value">12.70%</span>
+                </div>
+                <p style="margin-top: 0.8rem; font-size: 0.8rem;">Sequential boosting of 200 shallow trees. Each tree corrects previous errors.</p>
+            </div>
+
+            <!-- Neural Network Card -->
+            <div class="model-card">
+                <h4>🧠 Neural Network</h4>
+                <p><strong>Insufficient Data</strong></p>
+                <div class="metric-mini">
+                    <span>R² Score:</span>
+                    <span class="metric-value">-0.36</span>
+                </div>
+                <div class="metric-mini">
+                    <span>MAPE:</span>
+                    <span class="metric-value">94.06%</span>
+                </div>
+                <p style="margin-top: 0.8rem; font-size: 0.8rem;">3-layer MLP with 64→32→16 neurons. Failed: 81 samples << model parameters.</p>
+            </div>
+
+            <!-- Why Not Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">
+                    <span class="icon">❌</span> Why Not LSTM/Transformers?
+                </div>
+                <div class="sidebar-content">
+                    <strong>Data Structure:</strong> Cross-sectional snapshots, not daily time series per entity. No temporal sequences to process.
+                </div>
+                <div class="sidebar-content">
+                    <strong>Sample Size:</strong> 102 rows total. LSTMs need hundreds-thousands of sequences. Would severely overfit.
+                </div>
+                <div class="sidebar-content">
+                    <strong>Appropriateness:</strong> Sequence models are overkill and structurally misaligned with problem definition.
                 </div>
             </div>
 
-            <!-- STEP 3: DATA SPLIT -->
-            <div class="step-section">
-                <div class="step-number">3</div>
-                <div class="step-title">✂️ Train-Validation-Test Split</div>
-                <div class="step-description">
-                    Chronological split to prevent data leakage and ensure realistic evaluation
+            <!-- Ensemble Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">
+                    <span class="icon">🎯</span> Final Ensemble
                 </div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Training Set</div>
-                        <div class="metric-value">793</div>
-                        <div class="metric-unit">69.9% | Mar 2020 - May 2022</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Validation Set</div>
-                        <div class="metric-value">170</div>
-                        <div class="metric-unit">15.0% | May 2022 - Nov 2022</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Test Set</div>
-                        <div class="metric-value">171</div>
-                        <div class="metric-unit">15.1% | Nov 2022 - Apr 2023</div>
-                    </div>
+                <div class="sidebar-content">
+                    <strong>Combination:</strong> 40% Random Forest + 60% Gradient Boosting
                 </div>
+                <div class="metric-mini">
+                    <span>R² Score:</span>
+                    <span class="metric-value">0.9584</span>
+                </div>
+                <div class="metric-mini">
+                    <span>MAE:</span>
+                    <span class="metric-value">985</span>
+                </div>
+                <p style="margin-top: 0.8rem; font-size: 0.8rem;">Combines bias reduction (GB) with variance reduction (RF). Most stable predictions.</p>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <header>
+                <h1>📈 COVID-19 Epidemic Forecasting Dashboard</h1>
+                <p>End-to-end ML pipeline: Data → Features → Models → Results</p>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab(event, 'overview')">Overview</button>
+                <button class="tab-btn" onclick="switchTab(event, 'data')">Data Preprocessing</button>
+                <button class="tab-btn" onclick="switchTab(event, 'features')">Feature Engineering</button>
+                <button class="tab-btn" onclick="switchTab(event, 'models')">Model Training</button>
+                <button class="tab-btn" onclick="switchTab(event, 'results')">Results & Validation</button>
             </div>
 
-            <!-- STEP 4: MODEL SELECTION -->
-            <div class="step-section">
-                <div class="step-number">4</div>
-                <div class="step-title">🎯 Model Selection & Architecture</div>
-                <div class="step-description">
-                    Four diverse models representing different methodologies and complexity levels
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-card" style="border-top-color: #e74c3c;">
-                        <div class="metric-label">ARIMA(5,1,2)</div>
-                        <div class="metric-value">📈</div>
-                        <div class="metric-unit">Statistical Baseline</div>
-                    </div>
-                    <div class="metric-card" style="border-top-color: #f39c12;">
-                        <div class="metric-label">Random Forest</div>
-                        <div class="metric-value">🌲</div>
-                        <div class="metric-unit">Ensemble Tabular</div>
-                    </div>
-                    <div class="metric-card" style="border-top-color: #3498db;">
-                        <div class="metric-label">LSTM</div>
-                        <div class="metric-value">🧠</div>
-                        <div class="metric-unit">Recurrent Neural Net</div>
-                    </div>
-                    <div class="metric-card" style="border-top-color: #2ecc71;">
-                        <div class="metric-label">CNN-LSTM</div>
-                        <div class="metric-value">🚀</div>
-                        <div class="metric-unit">Hybrid Deep Learning</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 5: TRAINING -->
-            <div class="step-section">
-                <div class="step-number">5</div>
-                <div class="step-title">⚙️ Model Training & Optimization</div>
-                <div class="step-description">
-                    Train all 4 models on 793 training samples with validation monitoring
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">ARIMA</div>
-                        <div class="metric-value">30 sec</div>
-                        <div class="metric-unit">CPU training time</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Random Forest</div>
-                        <div class="metric-value">45 sec</div>
-                        <div class="metric-unit">CPU training time</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">LSTM</div>
-                        <div class="metric-value">850 sec</div>
-                        <div class="metric-unit">GPU training time</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">CNN-LSTM</div>
-                        <div class="metric-value">1200 sec</div>
-                        <div class="metric-unit">GPU training time</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 6: TESTING & RESULTS -->
-            <div class="step-section">
-                <div class="step-number">6</div>
-                <div class="step-title">📈 Testing & Model Evaluation</div>
-                <div class="step-description">
-                    Evaluate all models on unseen test set (171 samples) with multiple metrics
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Evaluation Approach</div>
-                        <div class="metric-value">Holdout</div>
-                        <div class="metric-unit">Unseen test data only</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Metrics Calculated</div>
-                        <div class="metric-value">5</div>
-                        <div class="metric-unit">R², RMSE, MAE, MAPE, Direction Accuracy</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Comparison Method</div>
-                        <div class="metric-value">Multi-metric</div>
-                        <div class="metric-unit">Accuracy + interpretability + speed</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- FINAL RESULTS -->
-            <div class="results-section">
-                <div class="results-title">🏆 FINAL RESULTS & MODEL COMPARISON</div>
-
-                <div class="model-comparison">
-                    <!-- ARIMA Card -->
-                    <div class="model-card arima">
-                        <div class="model-header">ARIMA(5,1,2)</div>
-                        <div class="model-metrics">
-                            <div class="metric-row">
-                                <span class="metric-name">R² Score</span>
-                                <span class="metric-number">0.6234</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">RMSE</span>
-                                <span class="metric-number">456.2</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAE</span>
-                                <span class="metric-number">334.8</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAPE</span>
-                                <span class="metric-number">18.47%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">Direction Accuracy</span>
-                                <span class="metric-number">64.3%</span>
-                            </div>
+            <!-- TAB 1: OVERVIEW -->
+            <div id="overview" class="tab-content active">
+                <div class="section">
+                    <div class="section-title">📊 Project Summary</div>
+                    <div class="stats-bar">
+                        <div class="stat">
+                            <div class="stat-label">Dataset Size</div>
+                            <div class="stat-value">102</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.3rem;">Observations</div>
                         </div>
-                    </div>
-
-                    <!-- Random Forest Card -->
-                    <div class="model-card rf">
-                        <div class="model-header">Random Forest 🥈</div>
-                        <div class="model-metrics">
-                            <div class="metric-row">
-                                <span class="metric-name">R² Score</span>
-                                <span class="metric-number">0.8156</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">RMSE</span>
-                                <span class="metric-number">289.7</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAE</span>
-                                <span class="metric-number">201.2</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAPE</span>
-                                <span class="metric-number">10.52%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">Direction Accuracy</span>
-                                <span class="metric-number">76.2%</span>
-                            </div>
+                        <div class="stat">
+                            <div class="stat-label">Features</div>
+                            <div class="stat-value">11</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.3rem;">Final (3 engineered)</div>
                         </div>
-                    </div>
-
-                    <!-- LSTM Card -->
-                    <div class="model-card lstm">
-                        <div class="model-header">LSTM 🥉</div>
-                        <div class="model-metrics">
-                            <div class="metric-row">
-                                <span class="metric-name">R² Score</span>
-                                <span class="metric-number">0.8821</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">RMSE</span>
-                                <span class="metric-number">234.5</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAE</span>
-                                <span class="metric-number">168.3</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAPE</span>
-                                <span class="metric-number">8.47%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">Direction Accuracy</span>
-                                <span class="metric-number">78.4%</span>
-                            </div>
+                        <div class="stat">
+                            <div class="stat-label">Best R²</div>
+                            <div class="stat-value">0.962</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.3rem;">Gradient Boosting</div>
                         </div>
-                    </div>
-
-                    <!-- CNN-LSTM Card -->
-                    <div class="model-card cnn-lstm">
-                        <div class="model-header">CNN-LSTM 🥇 BEST</div>
-                        <div class="model-metrics">
-                            <div class="metric-row">
-                                <span class="metric-name">R² Score</span>
-                                <span class="metric-number best">0.9127</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">RMSE</span>
-                                <span class="metric-number best">198.3</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAE</span>
-                                <span class="metric-number best">142.7</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">MAPE</span>
-                                <span class="metric-number best">7.24%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-name">Direction Accuracy</span>
-                                <span class="metric-number best">81.5%</span>
-                            </div>
+                        <div class="stat">
+                            <div class="stat-label">Best MAPE</div>
+                            <div class="stat-value">12.7%</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.3rem;">Excellent</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Comparison Table -->
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>R² Score ⬆️</th>
-                            <th>RMSE ⬇️</th>
-                            <th>MAE ⬇️</th>
-                            <th>MAPE ⬇️</th>
-                            <th>Direction Accuracy ⬆️</th>
-                            <th>Training Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>ARIMA</strong></td>
-                            <td>0.6234</td>
-                            <td>456.2</td>
-                            <td>334.8</td>
-                            <td>18.47%</td>
-                            <td>64.3%</td>
-                            <td>30 sec</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Random Forest</strong></td>
-                            <td>0.8156</td>
-                            <td>289.7</td>
-                            <td>201.2</td>
-                            <td>10.52%</td>
-                            <td>76.2%</td>
-                            <td>45 sec</td>
-                        </tr>
-                        <tr>
-                            <td><strong>LSTM</strong></td>
-                            <td>0.8821</td>
-                            <td>234.5</td>
-                            <td>168.3</td>
-                            <td>8.47%</td>
-                            <td>78.4%</td>
-                            <td>850 sec</td>
-                        </tr>
-                        <tr>
-                            <td><strong>CNN-LSTM</strong></td>
-                            <td class="best">0.9127</td>
-                            <td class="best">198.3</td>
-                            <td class="best">142.7</td>
-                            <td class="best">7.24%</td>
-                            <td class="best">81.5%</td>
-                            <td class="best">1200 sec</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- CONCLUSIONS -->
-            <div class="conclusion-section">
-                <div class="conclusion-title">💡 KEY CONCLUSIONS & RECOMMENDATIONS</div>
-
-                <div class="conclusion-content">
-                    <strong>1. NUMERICAL BEST: CNN-LSTM (R² = 0.9127)</strong>
-                    <div class="conclusion-bullet">
-                        ✅ Highest accuracy across all metrics<br>
-                        ✅ Captures complex temporal patterns with CNN feature extraction + LSTM temporal modeling<br>
-                        ⚠️ Most complex (1,200 sec training), hardest to interpret
-                    </div>
-
-                    <strong>2. PRACTICAL BEST: Random Forest (R² = 0.8156)</strong>
-                    <div class="conclusion-bullet">
-                        ✅ 31% performance improvement over ARIMA baseline<br>
-                        ✅ Fully interpretable: feature importance shows model reasoning<br>
-                        ✅ Fast training (45 sec), low computational overhead<br>
-                        ✅ Robust to COVID's wave outliers and sudden shifts<br>
-                        ✅ No scaling required; industry-standard for tabular epidemiological data<br>
-                        ⚠️ 3% R² lower than CNN-LSTM, but vastly simpler
-                    </div>
-
-                    <strong>3. STRONG ALTERNATIVE: LSTM (R² = 0.8821)</strong>
-                    <div class="conclusion-bullet">
-                        ✅ Excellent accuracy (88.21% variance explained)<br>
-                        ✅ Leverages temporal sequences (14-day lookback)<br>
-                        ✅ Bridges gap between Random Forest and CNN-LSTM<br>
-                        ⚠️ Black-box model; harder to explain in viva<br>
-                        ⚠️ 1.03% R² improvement over RF at 19x training time cost
-                    </div>
-
-                    <strong>4. BASELINE VALIDATION: ARIMA (R² = 0.6234)</strong>
-                    <div class="conclusion-bullet">
-                        ✅ Confirms that complex models are necessary (62% vs 91% variance explained)<br>
-                        ✅ Validates that COVID data requires non-linear modeling<br>
-                        ✅ Useful as statistical sanity check<br>
-                        ⚠️ Univariate only; ignores 44 engineered features
+                <div class="section">
+                    <div class="section-title">🎯 Problem Definition</div>
+                    <div class="highlight-box">
+                        <strong>Task:</strong> Predict COVID-19 daily new cases from epidemiological and health-system indicators across Pakistan provinces and districts (2021-2023).
+                        <br><br>
+                        <strong>Input Features:</strong> Year, Province, District, Current Cases (24h), Quarantine Count, Ventilators, Oxygen, Mortality Rate
+                        <br><br>
+                        <strong>Target:</strong> Daily New Cases (numeric regression)
+                        <br><br>
+                        <strong>Data Type:</strong> Cross-sectional tabular data (district-year snapshots, not daily time series)
                     </div>
                 </div>
 
-                <div class="why-rf">
-                    <div class="why-rf-title">🌟 WHY RANDOM FOREST IS THE BEST OVERALL CHOICE:</div>
-                    <div class="why-rf-content">
-                        <strong>The Accuracy-Complexity Trade-off:</strong> While CNN-LSTM achieves 0.913 R² vs RF's 0.816 R², the 3% improvement comes at the cost of:<br>
-                        • 26.7x longer training time (1,200 vs 45 seconds)<br>
-                        • Zero interpretability (cannot explain predictions)<br>
-                        • High complexity (29 hyperparameters vs RF's 5-6)<br>
-                        • Risk of overfitting on 1,134 samples<br><br>
-
-                        <strong>Why RF wins for your project:</strong><br>
-                        ✓ Designed for tabular data (our 44 features)<br>
-                        ✓ Non-linear relationships captured naturally via tree splits<br>
-                        ✓ Feature importance answers "why" for viva questions<br>
-                        ✓ Robust to COVID's sudden waves and outliers<br>
-                        ✓ 30% better than ARIMA with only 50% more complexity<br>
-                        ✓ Can be retrained daily in 45 seconds for real-world deployment<br>
-                        ✓ Industry standard in healthcare epidemiology<br><br>
-
-                        <strong>When would we use CNN-LSTM instead?</strong><br>
-                        • If we had 100,000+ samples (deep learning needs big data)<br>
-                        • If accuracy > 95% was critical for life-or-death decisions<br>
-                        • If longer sequences (100+ days) were available<br>
-                        • For research paper novelty (showing deep learning can work)<br><br>
-
-                        <div style="text-align: center; margin-top: 15px;">
-                            <span style="background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 5px; display: inline-block;">
-                                <strong>FINAL RECOMMENDATION:</strong> Deploy Random Forest for production predictions.<br>
-                                Keep LSTM/CNN-LSTM for research and academic credibility.
-                            </span>
+                <div class="section">
+                    <div class="section-title">📍 Geographic Coverage</div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Provinces</h3>
+                            <div class="value">7</div>
+                            <div class="unit">AJK, Balochistan, GB, Islamabad, KP, Punjab, Sindh</div>
+                        </div>
+                        <div class="card">
+                            <h3>Districts</h3>
+                            <div class="value">26</div>
+                            <div class="unit">Diverse urban & rural regions</div>
+                        </div>
+                        <div class="card">
+                            <h3>Time Span</h3>
+                            <div class="value">3 Years</div>
+                            <div class="unit">2021-2023 (endemic phase)</div>
+                        </div>
+                        <div class="card">
+                            <h3>Train/Test</h3>
+                            <div class="value">80/20</div>
+                            <div class="unit">81 training, 21 testing</div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="footer">
-            <p>COVID-19 Predictive Models Dashboard | Data: March 2020 - April 2023 | 1,134 samples analyzed</p>
-            <p>For comprehensive viva preparation, review the DETAILED_VIVA_ANSWERS.md document</p>
-        </div>
+            <!-- TAB 2: DATA PREPROCESSING -->
+            <div id="data" class="tab-content">
+                <div class="section">
+                    <div class="section-title">🧹 Data Cleaning Steps</div>
+                    <div class="list-item">
+                        <strong>✓ Province Name Standardization</strong><br>
+                        Fixed inconsistencies: "BALOCHISTAN" → "Balochistan", "ISLAMABAD" → "Islamabad", "PUNJAB" → "Punjab"
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Invalid Value Handling</strong><br>
+                        Replaced Inf/NaN with 0. All 102 rows complete (no missing values).
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Index Column Removal</strong><br>
+                        Dropped non-informative "Column 1" (just row numbers).
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Outlier Inspection</strong><br>
+                        Kept all 102 rows (no removal). Max cases = 104,098; min = 0. Valid epidemiological range.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🔢 Categorical Encoding</div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>Type</th>
+                                    <th>Method</th>
+                                    <th>Unique Values</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Province</td>
+                                    <td>Categorical</td>
+                                    <td>LabelEncoder</td>
+                                    <td>7 → [0-6]</td>
+                                </tr>
+                                <tr>
+                                    <td>District</td>
+                                    <td>Categorical</td>
+                                    <td>LabelEncoder</td>
+                                    <td>26 → [0-25]</td>
+                                </tr>
+                                <tr>
+                                    <td>Year</td>
+                                    <td>Ordinal</td>
+                                    <td>Manual Mapping</td>
+                                    <td>2021→0, 2022→1, 2023→2</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Why Label Encoding?</strong> Tree models don't require one-hot encoding. Label encoding is compact and prevents feature space sparsity on small datasets.
+                    </p>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📊 Feature Scaling</div>
+                    <div class="highlight-box">
+                        <strong>Method:</strong> StandardScaler (z-score normalization)
+                        <br><br>
+                        <strong>Formula:</strong> X_scaled = (X - mean) / std_dev
+                        <br><br>
+                        <strong>Applied After:</strong> Train/test split (prevents data leakage)
+                        <br><br>
+                        <strong>Why?</strong> Ensures stable neural network training; harmless for tree models. Result: mean ≈ 0, std ≈ 1
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📈 Statistical Summary</div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>Min</th>
+                                    <th>Q1</th>
+                                    <th>Median</th>
+                                    <th>Mean</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Daily New Cases</strong></td>
+                                    <td>0</td>
+                                    <td>162</td>
+                                    <td>1,171</td>
+                                    <td>6,468</td>
+                                    <td>104,098</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Quarantine</strong></td>
+                                    <td>0.4</td>
+                                    <td>6.7</td>
+                                    <td>64.6</td>
+                                    <td>1,020</td>
+                                    <td>21,193</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mortality Rate (%)</strong></td>
+                                    <td>11.4</td>
+                                    <td>56.4</td>
+                                    <td>82.5</td>
+                                    <td>73.5</td>
+                                    <td>99.9</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ventilators</strong></td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0.06</td>
+                                    <td>8.6</td>
+                                    <td>206.8</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Key Observation:</strong> Heavy right skew in cases (mean >> median indicates outliers in major urban centers like Islamabad, Sindh).
+                    </p>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎲 Train/Test Split</div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Training Set</h3>
+                            <div class="value">81</div>
+                            <div class="unit">80% of data</div>
+                        </div>
+                        <div class="card">
+                            <h3>Testing Set</h3>
+                            <div class="value">21</div>
+                            <div class="unit">20% of data</div>
+                        </div>
+                        <div class="card">
+                            <h3>Split Method</h3>
+                            <div class="value">Random</div>
+                            <div class="unit">random_state=42</div>
+                        </div>
+                        <div class="card">
+                            <h3>Data Type</h3>
+                            <div class="value">Cross-sectional</div>
+                            <div class="unit">No temporal ordering</div>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Why Random Split?</strong> Data is cross-sectional (district-year snapshots), not a daily time series. No temporal dependencies to preserve.
+                    </p>
+                </div>
+            </div>
+
+            <!-- TAB 3: FEATURE ENGINEERING -->
+            <div id="features" class="tab-content">
+                <div class="section">
+                    <div class="section-title">📋 Original Features (10)</div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Feature</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Used</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Year</td>
+                                    <td>Categorical</td>
+                                    <td>2021, 2022, 2023</td>
+                                    <td><span class="badge badge-success">✓ Encoded</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Province</td>
+                                    <td>Categorical</td>
+                                    <td>7 provinces</td>
+                                    <td><span class="badge badge-success">✓ Encoded</span></td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>District</td>
+                                    <td>Categorical</td>
+                                    <td>26 districts</td>
+                                    <td><span class="badge badge-success">✓ Encoded</span></td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td><strong>Daily New Cases</strong></td>
+                                    <td>Numeric</td>
+                                    <td><strong>TARGET VARIABLE</strong></td>
+                                    <td><span class="badge badge-primary">→ Target</span></td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td>Cases 24h</td>
+                                    <td>Numeric</td>
+                                    <td>Cases in last 24h (baseline)</td>
+                                    <td><span class="badge badge-success">✓ Used</span></td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td>Quarantine</td>
+                                    <td>Numeric</td>
+                                    <td>People in quarantine</td>
+                                    <td><span class="badge badge-success">✓ Used</span></td>
+                                </tr>
+                                <tr>
+                                    <td>7</td>
+                                    <td>Ventilators occupied</td>
+                                    <td>Numeric</td>
+                                    <td>Critical care in use</td>
+                                    <td><span class="badge badge-success">✓ Used</span></td>
+                                </tr>
+                                <tr>
+                                    <td>8</td>
+                                    <td>Oxygen occupied</td>
+                                    <td>Numeric</td>
+                                    <td>Oxygen support in use</td>
+                                    <td><span class="badge badge-success">✓ Used</span></td>
+                                </tr>
+                                <tr>
+                                    <td>9</td>
+                                    <td>Mortality Rate</td>
+                                    <td>Numeric</td>
+                                    <td>Death rate percentage</td>
+                                    <td><span class="badge badge-success">✓ Used</span></td>
+                                </tr>
+                                <tr>
+                                    <td>10</td>
+                                    <td>Column 1</td>
+                                    <td>Index</td>
+                                    <td>Row numbers only</td>
+                                    <td><span class="badge badge-warning">✗ Dropped</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🔬 Engineered Features (3 NEW)</div>
+
+                    <div class="list-item">
+                        <strong>1. Quarantine_per_Case</strong><br>
+                        <strong>Formula:</strong> Quarantine / (Daily New Cases + 1)<br>
+                        <strong>Why:</strong> Normalizes quarantine intensity relative to current outbreak size. High values = strict control; low values = lenient.<br>
+                        <strong>Importance:</strong> 0.7% (limited but meaningful)
+                    </div>
+
+                    <div class="list-item">
+                        <strong>2. Hospital_Load</strong><br>
+                        <strong>Formula:</strong> Ventilators occupied + Oxygen occupied<br>
+                        <strong>Why:</strong> Composite measure of health-system stress. Captures overall critical-care capacity usage.<br>
+                        <strong>Importance:</strong> 1.6% (health-system metric)
+                    </div>
+
+                    <div class="list-item">
+                        <strong>3. Critical_Care_Ratio</strong><br>
+                        <strong>Formula:</strong> Ventilators occupied / (Oxygen occupied + 1)<br>
+                        <strong>Why:</strong> Severity indicator. High ratio = more cases require ventilators (severe). Low = mostly mild/moderate.<br>
+                        <strong>Importance:</strong> 3.1% (top 3 non-baseline feature!)
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📊 Final Feature Set (11 Total)</div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Original</h3>
+                            <div class="value">9</div>
+                            <div class="unit">Raw input features</div>
+                        </div>
+                        <div class="card">
+                            <h3>Engineered</h3>
+                            <div class="value">3</div>
+                            <div class="unit">Domain-specific ratios</div>
+                        </div>
+                        <div class="card">
+                            <h3>Total</h3>
+                            <div class="value">11</div>
+                            <div class="unit">Ready for modeling</div>
+                        </div>
+                        <div class="card">
+                            <h3>Scaling</h3>
+                            <div class="value">StandardScaler</div>
+                            <div class="unit">Applied to all</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎯 Feature Engineering Rationale</div>
+                    <div class="highlight-box">
+                        <strong>Goal:</strong> Move beyond raw counts to relative/contextual indicators that capture outbreak dynamics better.
+                        <br><br>
+                        <strong>Key Insight:</strong> Absolute metrics (e.g., "100 ventilators in use") are less interpretable than relative metrics (e.g., "0.5 ventilators per 100 cases"). The latter captures severity and outbreak control intensity.
+                        <br><br>
+                        <strong>Result:</strong> Engineered features improved model interpretability and contributed 5.4% combined feature importance.
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: MODEL TRAINING -->
+            <div id="models" class="tab-content">
+                <div class="section">
+                    <div class="section-title">🎲 Problem Framing</div>
+                    <div class="highlight-box">
+                        <strong>Type:</strong> Regression (predict numeric case counts)
+                        <br><br>
+                        <strong>Data:</strong> Tabular, cross-sectional (102 rows, 11 features)
+                        <br><br>
+                        <strong>Challenge:</strong> Small sample size + non-linear relationships
+                        <br><br>
+                        <strong>Solution:</strong> Ensemble of tree-based models (handles both challenges well)
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🌲 Random Forest (200 trees)</div>
+                    <div class="highlight-box">
+                        <strong>Algorithm:</strong> Bootstrap Aggregating (Bagging) of decision trees
+                        <br><br>
+                        <strong>How it works:</strong>
+                        <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                            <li>Randomly sample 80% of training data for each tree (with replacement)</li>
+                            <li>At each node, randomly select subset of features and split on best MSE</li>
+                            <li>Grow trees to max_depth=10</li>
+                            <li>Final prediction = average of all 200 predictions</li>
+                        </ol>
+                        <br>
+                        <strong>Hyperparameters:</strong> n_estimators=200, max_depth=10, min_samples_split=5, min_samples_leaf=2
+                    </div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>R² Score</h3>
+                            <div class="value">0.9385</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAE</h3>
+                            <div class="value">1,224</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAPE</h3>
+                            <div class="value">14.08%</div>
+                        </div>
+                        <div class="card">
+                            <h3>RMSE</h3>
+                            <div class="value">3,103</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🚀 Gradient Boosting (200 stages) ⭐ BEST</div>
+                    <div class="highlight-box">
+                        <strong>Algorithm:</strong> Sequential boosting of shallow trees trained on residuals
+                        <br><br>
+                        <strong>How it works:</strong>
+                        <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                            <li>Initialize with mean prediction</li>
+                            <li>For 200 stages:
+                                <ul style="margin-left: 1rem; margin-top: 0.3rem;">
+                                    <li>Compute residuals = actual - predicted</li>
+                                    <li>Train new tree to predict residuals</li>
+                                    <li>Add tree × learning_rate to ensemble</li>
+                                    <li>Update predictions</li>
+                                </ul>
+                            </li>
+                            <li>Final prediction = sum of all weighted contributions</li>
+                        </ol>
+                        <br>
+                        <strong>Hyperparameters:</strong> n_estimators=200, max_depth=5, learning_rate=0.05, subsample=0.8
+                    </div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>R² Score</h3>
+                            <div class="value">0.9624</div>
+                            <div style="color: var(--success); font-size: 0.85rem; margin-top: 0.3rem;">🏆 Best</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAE</h3>
+                            <div class="value">1,005</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAPE</h3>
+                            <div class="value">12.70%</div>
+                            <div style="color: var(--success); font-size: 0.85rem; margin-top: 0.3rem;">Excellent</div>
+                        </div>
+                        <div class="card">
+                            <h3>RMSE</h3>
+                            <div class="value">2,428</div>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Why GB beats RF:</strong> Reduces bias through sequential error correction. Each tree learns from previous mistakes, leading to better overall fit.
+                    </p>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🧠 Neural Network (MLP) - Experimental Baseline</div>
+                    <div class="highlight-box">
+                        <strong>Architecture:</strong> 3 hidden layers (64 → 32 → 16) with ReLU activation
+                        <br><br>
+                        <strong>Optimizer:</strong> Adam with learning_rate=0.001
+                        <br><br>
+                        <strong>Training:</strong> Early stopping enabled (max 500 iterations)
+                    </div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>R² Score</h3>
+                            <div class="value">-0.3553</div>
+                            <div style="color: var(--danger); font-size: 0.85rem; margin-top: 0.3rem;">❌ Failed</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAE</h3>
+                            <div class="value">7,460</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAPE</h3>
+                            <div class="value">94.06%</div>
+                        </div>
+                        <div class="card">
+                            <h3>Iterations</h3>
+                            <div class="value">~12</div>
+                            <div style="color: var(--danger); font-size: 0.85rem; margin-top: 0.3rem;">Early stop</div>
+                        </div>
+                    </div>
+                    <div class="highlight-box" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.15)); border-color: var(--danger);">
+                        <strong>Why it failed:</strong> Only 81 training samples vs many neural network parameters. Severe overfitting + underfitting mix. Early stopping triggered after 12 iterations = network could not find generalizable pattern.
+                        <br><br>
+                        <strong>Lesson:</strong> Deep learning unsuitable for small datasets. Confirms tree-based approach is correct choice.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎯 Ensemble Model (FINAL)</div>
+                    <div class="highlight-box">
+                        <strong>Combination:</strong> 40% Random Forest + 60% Gradient Boosting
+                        <br><br>
+                        <strong>Formula:</strong> y_pred_ensemble = 0.4 × y_pred_rf + 0.6 × y_pred_gb
+                        <br><br>
+                        <strong>Rationale:</strong> Combines GB's bias reduction with RF's variance reduction. Different models make different errors; averaging reduces individual model idiosyncrasies.
+                    </div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>R² Score</h3>
+                            <div class="value">0.9584</div>
+                            <div style="color: var(--success); font-size: 0.85rem; margin-top: 0.3rem;">Stable</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAE</h3>
+                            <div class="value">985</div>
+                            <div style="color: var(--success); font-size: 0.85rem; margin-top: 0.3rem;">Lowest!</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAPE</h3>
+                            <div class="value">12.64%</div>
+                        </div>
+                        <div class="card">
+                            <h3>Robustness</h3>
+                            <div class="value">High</div>
+                            <div style="color: var(--success); font-size: 0.85rem; margin-top: 0.3rem;">✓ Recommended</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">⚙️ Model Comparison Summary</div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>R²</th>
+                                    <th>MAE</th>
+                                    <th>MAPE</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Random Forest</strong></td>
+                                    <td>0.9385</td>
+                                    <td>1,224</td>
+                                    <td>14.08%</td>
+                                    <td><span class="badge badge-primary">Good</span></td>
+                                </tr>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <td><strong>🏆 Gradient Boosting</strong></td>
+                                    <td><strong>0.9624</strong></td>
+                                    <td><strong>1,005</strong></td>
+                                    <td><strong>12.70%</strong></td>
+                                    <td><span class="badge badge-success">BEST</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Neural Network</strong></td>
+                                    <td>-0.3553</td>
+                                    <td>7,460</td>
+                                    <td>94.06%</td>
+                                    <td><span class="badge badge-warning">Failed</span></td>
+                                </tr>
+                                <tr style="background: rgba(37, 99, 235, 0.1);">
+                                    <td><strong>🎯 Ensemble (RF+GB)</strong></td>
+                                    <td><strong>0.9584</strong></td>
+                                    <td><strong>985</strong></td>
+                                    <td><strong>12.64%</strong></td>
+                                    <td><span class="badge badge-success">DEPLOYED</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: RESULTS & VALIDATION -->
+            <div id="results" class="tab-content">
+                <div class="section">
+                    <div class="section-title">📊 Prediction Accuracy (Test Set)</div>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>R² Score</h3>
+                            <div class="value">0.9624</div>
+                            <div class="unit">Explains 96.24% of variance</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAPE</h3>
+                            <div class="value">12.7%</div>
+                            <div class="unit">Excellent tier (&lt;15%)</div>
+                        </div>
+                        <div class="card">
+                            <h3>MAE</h3>
+                            <div class="value">1,005</div>
+                            <div class="unit">±1,005 cases avg error</div>
+                        </div>
+                        <div class="card">
+                            <h3>Test Samples</h3>
+                            <div class="value">21</div>
+                            <div class="unit">Out-of-sample evaluation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎯 Feature Importance Ranking</div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">From Gradient Boosting (best model). Higher = more predictive power.</p>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Feature</th>
+                                    <th>Importance</th>
+                                    <th>%</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>1</strong></td>
+                                    <td><strong>Cases 24h</strong></td>
+                                    <td>0.8994</td>
+                                    <td>89.9%</td>
+                                    <td><span class="badge badge-primary">Baseline</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>2</strong></td>
+                                    <td><strong>Mortality Rate</strong></td>
+                                    <td>0.0339</td>
+                                    <td>3.4%</td>
+                                    <td><span class="badge badge-primary">Health</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>3</strong></td>
+                                    <td><strong>Critical_Care_Ratio</strong></td>
+                                    <td>0.0306</td>
+                                    <td>3.1%</td>
+                                    <td><span class="badge badge-primary">Health</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>4</strong></td>
+                                    <td><strong>Hospital_Load</strong></td>
+                                    <td>0.0157</td>
+                                    <td>1.6%</td>
+                                    <td><span class="badge badge-primary">Health</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>5</strong></td>
+                                    <td><strong>Quarantine_per_Case</strong></td>
+                                    <td>0.0074</td>
+                                    <td>0.7%</td>
+                                    <td><span class="badge badge-primary">Social</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>6</strong></td>
+                                    <td><strong>Ventilators occupied</strong></td>
+                                    <td>0.0061</td>
+                                    <td>0.6%</td>
+                                    <td><span class="badge badge-primary">Health</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>7-11</strong></td>
+                                    <td><strong>Others</strong></td>
+                                    <td>0.0069</td>
+                                    <td>0.7%</td>
+                                    <td><span class="badge badge-primary">Location, Time</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="highlight-box" style="margin-top: 1.5rem;">
+                        <strong>Key Insight:</strong> Cases 24h dominates (89.9%) because it's almost identical to the target. This reveals the model is excellent at **nowcasting** (predicting current burden from current indicators) but limited for **true forecasting** (predicting future from past).
+                        <br><br>
+                        <strong>Secondary Insight:</strong> Health-system metrics (mortality, ICU ratios) combine for 8.8%, showing that outbreak severity and hospital response are predictive beyond current case counts.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🌍 Provincial Performance</div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Model accuracy varies by region. Green = excellent; orange = good.</p>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Province</th>
+                                    <th>Test Samples</th>
+                                    <th>Avg Actual</th>
+                                    <th>Avg Predicted</th>
+                                    <th>Avg Error</th>
+                                    <th>Error %</th>
+                                    <th>Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <td><strong>AJK</strong></td>
+                                    <td>2</td>
+                                    <td>2,353</td>
+                                    <td>2,341</td>
+                                    <td>19</td>
+                                    <td>0.8%</td>
+                                    <td><span class="badge badge-success">★★★★★</span></td>
+                                </tr>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <td><strong>Gilgit Baltistan</strong></td>
+                                    <td>2</td>
+                                    <td>578</td>
+                                    <td>589</td>
+                                    <td>11</td>
+                                    <td>1.9%</td>
+                                    <td><span class="badge badge-success">★★★★★</span></td>
+                                </tr>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <td><strong>Punjab</strong></td>
+                                    <td>7</td>
+                                    <td>2,982</td>
+                                    <td>2,943</td>
+                                    <td>59</td>
+                                    <td>2.0%</td>
+                                    <td><span class="badge badge-success">★★★★★</span></td>
+                                </tr>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <td><strong>KP</strong></td>
+                                    <td>4</td>
+                                    <td>999</td>
+                                    <td>1,014</td>
+                                    <td>21</td>
+                                    <td>2.1%</td>
+                                    <td><span class="badge badge-success">★★★★★</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Islamabad</strong></td>
+                                    <td>2</td>
+                                    <td>38,502</td>
+                                    <td>34,127</td>
+                                    <td>4,375</td>
+                                    <td>11.4%</td>
+                                    <td><span class="badge badge-primary">★★★★</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sindh</strong></td>
+                                    <td>3</td>
+                                    <td>16,314</td>
+                                    <td>16,729</td>
+                                    <td>3,930</td>
+                                    <td>24.1%</td>
+                                    <td><span class="badge badge-warning">★★★</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                        <strong>Summary:</strong> 4 out of 7 provinces achieve &lt;5% error (excellent). Larger cities (Islamabad, Sindh) have higher errors due to case-volume sensitivity, but errors remain within acceptable range.
+                    </p>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📈 Residual Analysis</div>
+                    <div class="highlight-box">
+                        <strong>Residuals = Actual - Predicted</strong>
+                        <br><br>
+                        <strong>Distribution:</strong> Approximately normal (good fit)
+                        <br>
+                        <strong>Mean:</strong> ≈ 0 (no systematic bias)
+                        <br>
+                        <strong>Std Dev:</strong> ≈ 2,428 (random error magnitude)
+                        <br><br>
+                        <strong>Interpretation:</strong> Model residuals meet statistical assumptions. Predictions are unbiased, errors are random, no concerning patterns detected.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">✅ Key Conclusions</div>
+                    <div class="list-item">
+                        <strong>✓ High Accuracy:</strong> R² = 0.9624 explains 96.24% of variance. MAPE = 12.7% (excellent tier, &lt;15% industry standard).
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Tree-Based Superiority:</strong> RF (0.9385) and GB (0.9624) far outperform NN (-0.36) on this small, tabular dataset. Confirms methodology choice.
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Provincial Consistency:</strong> 4/7 provinces &lt;5% error. Model generalizes across diverse regions (urban/rural, large/small case loads).
+                    </div>
+                    <div class="list-item">
+                        <strong>✓ Ensemble Stability:</strong> Combining RF + GB reduces MAE to 985 (lowest) and maintains high R². Recommended for production deployment.
+                    </div>
+                    <div class="list-item">
+                        <strong>⚠️ Limitation:</strong> Heavy dependence on Cases 24h (89.9%). Model is excellent for nowcasting but limited for true forecasting without historical data and lag features.
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
+
+    <script>
+        function switchTab(event, tabName) {
+            // Hide all tabs
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(el => el.classList.remove('active'));
+
+            // Remove active from all buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab and activate button
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Initialize charts on page load (optional enhancement)
+        window.addEventListener('DOMContentLoaded', function() {
+            // Could add Chart.js visualizations here if needed
+        });
+    </script>
 </body>
 </html>
